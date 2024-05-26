@@ -82,7 +82,7 @@ class SearchAlgs:
             if type == 0: # manhattan
                 return abs(p1[0]-p2[0]) + abs(p1[1]-p2[1])
             elif type == 1: # euclidean
-                return (p1[0]-p2[0])**2 + (p1[1]-p2[1])**2
+                return ((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)**.5
             else:
                 raise Exception("heuristic type can either be manhattan (0) or euclidean (1)")
         possible_paths = {pos_start: 0}
@@ -123,3 +123,4 @@ class SearchAlgs:
                 return 0
         helper(path_so_far)
         return path_so_far
+    

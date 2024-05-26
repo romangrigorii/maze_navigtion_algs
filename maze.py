@@ -22,23 +22,27 @@ class MazeBuilder:
 
     def __init__(self, maze_type = 0, width = 100, height = 100, ncellsx = 20, ncellsy = 20):
         '''
-        For all mazes the start and end node are positioned at (0,0) and (ncellsx-1,ncellsy-1), respectively 
-        maze types:
-        0 - this is a maze in which hthe start node position can be reached via multiple paths and each traversal has a cost.
-        1 - this is a maze in which the start and end node are connedted by exctly ONE global path. 
+        - For all mazes the start and end node are positioned at (0,0) and (ncellsx-1,ncellsy-1), respectively 
+        - INPUTS
+        - - maze_type
+        - - - 0 : this is a maze in which the start node position can be reached via multiple paths and each traversal has a cost.
+        - - - 1 : this is a maze in which the start and end node are connedted by exctly ONE global path. 
+        - - width : width of the game window
+        - - height : height of the game window
+        - - ncellsx : number of maze cells along the x axis (placed horizontally)
+        - - ncellsy : number of maze cells along the y axis (placed vertically)
         '''
         # set whether or not we want to visualize the maze building in real time
-
         self.maze_type = maze_type
         self.FPS = 1
-        if width < ncellsx*3: width = ncellsx*3 # make sure each path is at least 1 pixel wide
-        if height < ncellsy*3: height = ncellsy*3
+        # make sure each path is at least 1 pixel wide
+        if width <= ncellsx*2: width = ncellsx*2 + 1
+        if height <= ncellsy*2: height = ncellsy*2 + 1
         self.width = width
         self.height = height
-        self.size = (self.width,self.height) # this is the size of the map in pixels
+        self.size = (self.width, self.height) # this is the size of the map in pixels
         self.screen = None
         self.clock = None
-
         self.ncellsx = ncellsx
         self.ncellsy = ncellsy        
         self.wx = self.width//self.ncellsx
@@ -52,15 +56,18 @@ class MazeBuilder:
         self.visited = []
         self.visited_set = set()
         self.stack = []
-        self.graph = {}
+        self.graph = {} # this will hold key: value pairs for a position in a maze : list of positions that could be traversed to
         self.paths = []
 
+        # # # create a ranom heightmap
         self.heightmap = [[np.exp(-((x - ncellsx/4)**2 )/ncellsx**2*10 - ((y - ncellsy/2)**2)/ncellsy**2*60) for y in range(ncellsy)] for x in range(ncellsx)]
         self.heightmap = [[self.heightmap[x][y] + np.exp(-((x - ncellsx*3/4)**2 )/ncellsx**2*30 - ((y - ncellsy*3/4)**2)/ncellsy**2*30) for y in range(ncellsy)] for x in range(ncellsx)]
         self.heightmap = [[self.heightmap[x][y] + np.exp(-((x - ncellsx*1/4)**2 )/ncellsx**2*30 - ((y - ncellsy*1/4)**2)/ncellsy**2*30) for y in range(ncellsy)] for x in range(ncellsx)]
         self.heightmap = [[self.heightmap[x][y] + np.exp(-((x)**2 )/ncellsx**2*10 - ((y - ncellsy)**2)/ncellsy**2*10) for y in range(ncellsy)] for x in range(ncellsx)]
         self.heightmap = [[self.heightmap[x][y] + np.exp(-((x - ncellsx)**2 )/ncellsx**2*10 - ((y)**2)/ncellsy**2*10) for y in range(ncellsy)] for x in range(ncellsx)]
+        
         ma = max(sum(self.heightmap,[]))
+        
         self.heightmap = [[self.heightmap[x][y]/ma for y in range(ncellsy)] for x in range(ncellsx)]
 
     def init_maze_environment(self, background_color = BLACK):
@@ -84,7 +91,7 @@ class MazeBuilder:
             possible_walls = [(pos[0]+1, pos[1]),(pos[0]-1, pos[1]),(pos[0], pos[1]-1),(pos[0], pos[1]+1)]
             walls = []
             for i, q in enumerate(possible_walls):
-                if q not in [a[0] for a in self.graph[pos]]:
+                if q not in [a[0] for a in self.graph[pos]]: #
                     walls.append(i)
             for i in walls:
                 if i < 2:
@@ -95,13 +102,14 @@ class MazeBuilder:
 
     def build_maze(self):
         '''
-        build_maze will construct a graph representing the allowed  within a virtual maze environment. 
+        build_maze will construct a graph representing the allowed traversals within a virtual maze environment. 
         The graph is represented as a dictionary, a position wihtin a maze is a key and values represent each
         possible move from that positiion i nthe format [weight, (posx, posy)] where weight is the cost of transition
         or a weight of the vertex connecting the two nodes. 
 
-        maze_type 0: is a maze in which there are multiple paths to the target node by 
+        maze_type 0: is a maze in which there are multiple paths to the target node
         maze_type 1: is a maze that has one path toward the target node
+
         '''        
         if self.maze_type == 0:
             self.visited # this keeps track of all positions we have visited
@@ -189,54 +197,21 @@ class MazeBuilder:
         with open(filename,'rb') as file:
             self.graph = pickle.load(file)
 
-if __name__ == "__main__":
-        
-    def fill_maze():
-        if maze_type == 0:
-            m.fill_height_map()
-        m.draw_grid_from_graph(width = 3)
-
-    def fill_maze_path():
+    def fill_maze_path(self, visited, optimal_path):
         for p in visited:
-            m.draw_pos(p, scale = .25)
+            self.draw_pos(p, scale = .25)
         for p in optimal_path:
-            m.draw_pos(p, color=m.BLUE, scale = .7)
+            self.draw_pos(p, color=self.BLUE, scale = .7)
 
-    while(1):
-        
-        type = int(input('Provide the traversal type: 0 for Djkistra | 1 for Stack approach | 2 for Astar version 1 | 3 for Astar version 2:'))
-        if type not in [0,1,2,3]:
-            print('Invalid option.')
-            break
-        
-        maze_type = type//3
-        alg_type = type if type < 2 else 2 # 0, 1, 2
-        m = MazeBuilder(maze_type=maze_type, width = 1000, height = 500, ncellsx = 50, ncellsy = 25)
-        rb = SearchAlgs()
-        m.init_maze_environment()
-
-        if not USE_SAVED_MAZE: # we build a new maze
-            m.build_maze()
-            m.save_graph("amaze.pickle") ### save the graph/maze
-        else:
-            m.load_graph("amaze.pickle") ### load the last saved graph       
-        
-        if alg_type == 0:   
-            fill_maze()  
-            visited, optimal_path = rb.Dijkstra(graph = m.graph, pos_start = m.pos_start, pos_end = m.pos_end)
-            fill_maze_path()
-        elif alg_type == 1:
-            graph_traversed = {}
-            stack = []
-            vis = set()
-            for k_i in range(5):                
-                fill_maze() 
-                visited, optimal_path, graph_traversed, stack, vis = rb.StackBasedApproach(graph = m.graph, pos_start = m.pos_start, pos_end = m.pos_end, graph_traversed=graph_traversed, pos_stack=stack, first = k_i == 0, visited = vis)
-                fill_maze_path()
-                print(f'traversal {k_i+1}')
-                time.sleep(2)
-        else:
-            fill_maze() 
-            visited, optimal_path = rb.Astar(graph = m.graph, pos_start = m.pos_start, pos_end = m.pos_end)
-            fill_maze_path()
-        m.run()
+if __name__ == "__main__":
+    x = input('Specify which maze to render: 0 for sparce maze 1 for maze with one solution\n')
+    valid_options = [0, 1]
+    if int(x) not in valid_options:
+        raise Exception("Invalid option. Select one from " +  valid_options.__str__())
+    m = MazeBuilder(maze_type=int(x), width = 1000, height = 500, ncellsx = 50, ncellsy = 25)
+    rb = SearchAlgs()
+    m.init_maze_environment()
+    m.build_maze()
+    m.fill_height_map()
+    m.draw_grid_from_graph(width = 3)
+    m.run()
